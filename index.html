@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>19.09.2025</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund+Guides&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body{
+            font-family: "Roboto", sans-serif;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        #albumCover.is-playing {
+            animation: spin 30s linear infinite;
+        }
+        #progressBarContainer {
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #playPauseButton:hover {
+            transform: scale(1.05);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'teal': {
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-4 flex justify-center items-center min-h-screen">
+
+    <audio id="audioPlayer" src="zono.mp3"></audio>
+
+    <div class="bg-white p-8 rounded-[5px] shadow-xl w-full max-w-sm transform transition duration-300 hover:shadow-2xl">
+        <img id="albumCover" 
+             src="Sombath KeoMuny.jpg" 
+             alt="idk - Highvyn, Taylor Shin" 
+             class="w-full h-auto max-h-80 mx-auto rounded-[5px] mb-6 shadow-xl shadow-teal-500/30 object-cover transform transition duration-500">
+
+        <h2 id="songTitle" class="text-2xl font-bold text-center text-gray-900 truncate">Last Day</h2>
+        <p id="artistName" class="text-teal-600 text-sm text-center mb-6">Highvyn, Zono</p>
+
+        <div id="progressBarContainer" class="mt-6 bg-gray-200 h-2 rounded-full cursor-pointer overflow-hidden" onclick="seekTo(event)">
+            <div id="progressBar" class="bg-teal-500 h-2 rounded-full w-0 transition-all duration-100 ease-linear"></div>
+        </div>
+
+        <div class="flex justify-between mt-2 text-sm text-gray-600 font-mono">
+            <span id="currentTime">0:00</span>
+            <span id="durationTime">0:00</span>
+        </div>
+
+        <div class="mt-8 flex justify-center items-center">
+            <button id="prevButton" class="p-3 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 focus:outline-none transition duration-150 ease-in-out" onclick="skip(-15)">
+                <svg width="24" height="24" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17V7L9 12L13 17Z" fill="currentColor" transform="matrix(-1, 0, 0, 1, 0, 0)"/>
+                    <path d="M12.5 17V7L8.5 12L12.5 17Z" fill="white"/>
+                    <text x="12" y="16" font-family="Arial" font-size="6" fill="#000" text-anchor="middle">15</text>
+                </svg>
+            </button>
+
+            <button id="playPauseButton" class="p-5 rounded-full bg-blue-500 text-white hover:bg-blue-600 focus:outline-none mx-6 shadow-xl shadow-blue-500/50 transition duration-300 ease-in-out" onclick="togglePlayPause()">
+                <svg id="playPauseIcon" width="24" height="24" viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path id="playPausePath" fill="currentColor" d="M8 5V19L19 12L8 5Z"></path>
+                </svg>
+            </button>
+
+            <button id="nextButton" class="p-3 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 focus:outline-none transition duration-150 ease-in-out" onclick="skip(15)">
+                <svg width="24" height="24" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM11 17V7L15 12L11 17Z" fill="currentColor"/>
+                    <path d="M11.5 17V7L15.5 12L11.5 17Z" fill="white"/>
+                    <text x="12" y="16" font-family="Arial" font-size="6" fill="#000" text-anchor="middle">15</text>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playPauseButton = document.getElementById('playPauseButton');
+        const playPausePath = document.getElementById('playPausePath');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const durationTimeDisplay = document.getElementById('durationTime');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const albumCover = document.getElementById('albumCover');
+
+        const PLAY_PATH = "M8 5V19L19 12L8 5Z";
+        const PAUSE_PATH = "M6 19h4V5H6v14zm8-14v14h4V5h-4z";
+
+        function formatTime(timeInSeconds) {
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = Math.floor(timeInSeconds % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPausePath.setAttribute('d', PAUSE_PATH);
+                albumCover.classList.add('is-playing');
+            } else {
+                audioPlayer.pause();
+                playPausePath.setAttribute('d', PLAY_PATH);
+                albumCover.classList.remove('is-playing');
+            }
+        }
+        
+        function skip(seconds) {
+            audioPlayer.currentTime += seconds;
+        }
+
+        function updateProgress() {
+            const duration = audioPlayer.duration;
+            const currentTime = audioPlayer.currentTime;
+            
+            if (isFinite(duration) && duration > 0) {
+                const progressPercent = (currentTime / duration) * 100;
+                progressBar.style.width = progressPercent + '%';
+                currentTimeDisplay.textContent = formatTime(currentTime);
+            }
+        }
+        
+        function setDuration() {
+            const duration = audioPlayer.duration;
+            if (isFinite(duration)) {
+                durationTimeDisplay.textContent = formatTime(duration);
+                playPausePath.setAttribute('d', PLAY_PATH);
+            } else {
+                durationTimeDisplay.textContent = '0:00';
+            }
+        }
+        
+        function seekTo(event) {
+            const rect = progressBarContainer.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            
+            const percent = clickX / rect.width;
+            const newTime = audioPlayer.duration * percent;
+            
+            if (isFinite(audioPlayer.duration)) {
+                 audioPlayer.currentTime = newTime;
+            }
+        }
+
+        window.onload = function() {
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            
+            audioPlayer.addEventListener('loadedmetadata', setDuration);
+
+            audioPlayer.addEventListener('ended', () => {
+                audioPlayer.currentTime = 0;
+                playPausePath.setAttribute('d', PLAY_PATH);
+                progressBar.style.width = '0%';
+                albumCover.classList.remove('is-playing');
+            });
+
+            if (audioPlayer.readyState >= 1) {
+                setDuration();
+            }
+        };
+
+    </script>
+</body>
+</html>
